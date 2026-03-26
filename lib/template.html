@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Git Calendar — __REPO_NAME__</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -204,17 +204,34 @@
   .calendar-cell.level-4 { background: var(--copper-4); }
   .calendar-cell.level-5 { background: var(--copper-5); }
 
+  .cell-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+
   .cell-day {
     font-size: 20px;
     font-weight: 700;
     color: #fff;
-    margin-bottom: 6px;
+  }
+
+  .cell-count {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.5px;
   }
 
   .no-commits .cell-day {
     color: var(--text-dim);
     font-size: 14px;
     font-weight: 500;
+  }
+
+  .no-commits .cell-count {
+    display: none;
   }
 
   .calendar-cell.is-today {
@@ -429,6 +446,22 @@
     color: var(--accent-bright);
   }
 
+  /* Bottom spacer + giant footer */
+  .bottom-spacer {
+    height: 50vh;
+  }
+
+  .giant-footer {
+    padding: 0 0 40px;
+    width: 100%;
+  }
+
+  .giant-footer svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
   @media (max-width: 1100px) {
     body { padding: 24px 20px 60px; }
     .calendar-cell { min-height: 90px; padding: 8px; }
@@ -473,6 +506,22 @@
   <div class="legend-block" style="background:var(--copper-4)"></div>
   <div class="legend-block" style="background:var(--copper-5)"></div>
   <span>More</span>
+</div>
+
+<div class="bottom-spacer"></div>
+
+<div class="giant-footer">
+  <svg viewBox="0 0 1000 110" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <text x="500" y="88" text-anchor="middle"
+      font-family="'Inter', sans-serif"
+      font-weight="900"
+      font-size="120"
+      letter-spacing="-2"
+      fill="none"
+      stroke="#7B4F3A"
+      stroke-width="1.2"
+    >GIT CALENDAR</text>
+  </svg>
 </div>
 
 <script>
@@ -636,7 +685,12 @@ function render() {
       const isToday = dateStr === todayStr;
 
       html += `<div class="calendar-cell ${levelClass}${isToday ? ' is-today' : ''}" ${isToday ? 'id="today-cell"' : ''}>`;
+      html += `<div class="cell-header">`;
       html += `<div class="cell-day">${day}</div>`;
+      if (count > 0) {
+        html += `<div class="cell-count">${count} commit${count !== 1 ? 's' : ''}</div>`;
+      }
+      html += `</div>`;
 
       if (count > 0) {
         html += `<ul class="commit-list">`;

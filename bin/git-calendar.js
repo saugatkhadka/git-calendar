@@ -9,7 +9,7 @@ const readline = require('readline');
 // ── Parse arguments ─────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 let targetPath = process.cwd();
-let since = '6 months ago';
+let since = null; // full history by default
 let noOpen = false;
 
 for (let i = 0; i < args.length; i++) {
@@ -28,7 +28,7 @@ for (let i = 0; i < args.length; i++) {
     path              Path to a git repository (default: current directory)
 
   Options:
-    --since <period>  How far back to look (default: "6 months ago")
+    --since <period>  How far back to look (default: full history)
     --no-open         Don't prompt to open in browser
     -h, --help        Show this help message
 
@@ -60,97 +60,115 @@ const repoRoot = execSync('git rev-parse --show-toplevel', {
 }).trim();
 const repoName = path.basename(repoRoot);
 
-console.log(`\n  Scanning "${repoName}" since "${since}"...\n`);
+// ── Core generate function ──────────────────────────────────────────────────
+function generate(sincePeriod) {
+  const isFullHistory = !sincePeriod;
+  const label = isFullHistory ? 'full history' : sincePeriod;
 
-// ── Extract git log ─────────────────────────────────────────────────────────
-const SEP = '\t';
-const gitFormat = ['%h', '%an', '%ae', '%aI', '%s'].join(SEP);
+  console.log(`\n  Scanning "${repoName}" — ${label}...\n`);
 
-let logOutput;
-try {
-  logOutput = execSync(
-    `git log --all --format="${gitFormat}" --since=${JSON.stringify(since)}`,
-    { cwd: repoRoot, encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }
-  );
-} catch {
-  logOutput = '';
+  const SEP = '\t';
+  const gitFormat = ['%h', '%an', '%ae', '%aI', '%s'].join(SEP);
+
+  const sinceArg = sincePeriod ? ` --since=${JSON.stringify(sincePeriod)}` : '';
+  let logOutput;
+  try {
+    logOutput = execSync(
+      `git log --all --format="${gitFormat}"${sinceArg}`,
+      { cwd: repoRoot, encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }
+    );
+  } catch {
+    logOutput = '';
+  }
+
+  const commits = [];
+  for (const line of logOutput.split('\n')) {
+    if (!line.trim()) continue;
+    const parts = line.split(SEP);
+    if (parts.length < 5) continue;
+    const [hash, author, email, dateIso, ...subjectParts] = parts;
+    const subject = subjectParts.join(SEP);
+    commits.push({
+      hash,
+      author,
+      email,
+      date: dateIso.slice(0, 10),
+      time: dateIso.slice(11, 16),
+      subject,
+    });
+  }
+
+  if (commits.length === 0) {
+    console.error(`  No commits found.`);
+    return null;
+  }
+
+  // Build authors list
+  const authorMap = {};
+  for (const c of commits) {
+    if (!authorMap[c.author]) {
+      authorMap[c.author] = { name: c.author, email: c.email, count: 0 };
+    }
+    authorMap[c.author].count++;
+  }
+  const authors = Object.values(authorMap).sort((a, b) => b.count - a.count);
+
+  // Generate HTML
+  const templatePath = path.join(__dirname, '..', 'lib', 'template.html');
+  let html = fs.readFileSync(templatePath, 'utf-8');
+
+  html = html.split('__REPO_NAME__').join(escapeHtml(repoName));
+  html = html.split('__GIT_DATA__').join(JSON.stringify(commits));
+  html = html.split('__AUTHORS_DATA__').join(JSON.stringify(authors));
+  html = html.split('__COMMIT_COUNT__').join(String(commits.length));
+
+  // Write output
+  const outputDir = path.join(os.homedir(), '.git-calendar');
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  const outputFile = path.join(outputDir, `${sanitize(repoName)}.html`);
+  fs.writeFileSync(outputFile, html);
+
+  const uniqueAuthors = authors.length;
+  const dateRange = commits.map(c => c.date).sort();
+  const firstDate = dateRange[0];
+  const lastDate = dateRange[dateRange.length - 1];
+
+  console.log(`  ${commits.length} commits from ${uniqueAuthors} contributors`);
+  console.log(`  ${firstDate} to ${lastDate}\n`);
+  console.log(`  Generated: file://${outputFile}\n`);
+
+  return outputFile;
 }
 
-const commits = [];
-for (const line of logOutput.split('\n')) {
-  if (!line.trim()) continue;
-  const parts = line.split(SEP);
-  if (parts.length < 5) continue;
-  const [hash, author, email, dateIso, ...subjectParts] = parts;
-  const subject = subjectParts.join(SEP);
-  commits.push({
-    hash,
-    author,
-    email,
-    date: dateIso.slice(0, 10),
-    time: dateIso.slice(11, 16),
-    subject,
-  });
-}
+// ── Run ─────────────────────────────────────────────────────────────────────
+const outputFile = generate(since);
 
-if (commits.length === 0) {
-  console.error(`  No commits found in the last ${since}.`);
+if (!outputFile) {
   process.exit(1);
 }
 
-// ── Build authors list ──────────────────────────────────────────────────────
-const authorMap = {};
-for (const c of commits) {
-  if (!authorMap[c.author]) {
-    authorMap[c.author] = { name: c.author, email: c.email, count: 0 };
-  }
-  authorMap[c.author].count++;
-}
-const authors = Object.values(authorMap).sort((a, b) => b.count - a.count);
-
-// ── Generate HTML ───────────────────────────────────────────────────────────
-const templatePath = path.join(__dirname, '..', 'lib', 'template.html');
-let html = fs.readFileSync(templatePath, 'utf-8');
-
-// Use split/join to avoid regex replacement pitfalls with $ in commit messages
-html = html.split('__REPO_NAME__').join(escapeHtml(repoName));
-html = html.split('__GIT_DATA__').join(JSON.stringify(commits));
-html = html.split('__AUTHORS_DATA__').join(JSON.stringify(authors));
-html = html.split('__COMMIT_COUNT__').join(String(commits.length));
-
-// ── Write output ────────────────────────────────────────────────────────────
-const outputDir = path.join(os.homedir(), '.git-calendar');
-fs.mkdirSync(outputDir, { recursive: true });
-
-const outputFile = path.join(outputDir, `${sanitize(repoName)}.html`);
-fs.writeFileSync(outputFile, html);
-
-const uniqueAuthors = authors.length;
-const dateRange = commits.map(c => c.date).sort();
-const firstDate = dateRange[0];
-const lastDate = dateRange[dateRange.length - 1];
-
-console.log(`  ${commits.length} commits from ${uniqueAuthors} contributors`);
-console.log(`  ${firstDate} to ${lastDate}\n`);
-console.log(`  Generated: file://${outputFile}\n`);
-
-// ── Prompt to open ──────────────────────────────────────────────────────────
 if (noOpen) {
   process.exit(0);
 }
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+// ── Interactive prompt ──────────────────────────────────────────────────────
+function prompt() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
 
-rl.question('  Press Enter to open in browser (or q to quit): ', (answer) => {
-  rl.close();
-  if (answer.trim().toLowerCase() === 'q') {
-    process.exit(0);
-  }
-  openBrowser(outputFile);
-});
+  rl.question('  [Enter] Open in browser  [q] Quit: ', (answer) => {
+    rl.close();
+    if (answer.trim().toLowerCase() === 'q') {
+      process.exit(0);
+    }
+    openBrowser(outputFile);
+  });
+}
+
+prompt();
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function openBrowser(filePath) {

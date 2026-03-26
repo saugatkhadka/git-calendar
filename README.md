@@ -29,8 +29,8 @@ git-calendar
 # Or point to a repo
 git-calendar ~/projects/my-repo
 
-# Look further back
-git-calendar --since "1 year ago"
+# Only last 6 months
+git-calendar --since "6 months ago"
 
 # Generate without opening
 git-calendar --no-open
@@ -43,7 +43,7 @@ The generated HTML is saved to `~/.git-calendar/<repo-name>.html`. Press Enter w
 | Option | Description | Default |
 |---|---|---|
 | `path` | Path to a git repository | Current directory |
-| `--since` | How far back to look | `"6 months ago"` |
+| `--since` | How far back to look | Full history |
 | `--no-open` | Skip the browser prompt | `false` |
 | `-h, --help` | Show help | |
 
