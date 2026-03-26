@@ -16,8 +16,10 @@ Visualize any git repository's history as a beautiful calendar heatmap — right
 ## Install
 
 ```bash
-npm install -g git-calendar
+npm install -g @saugatkhadka/git-calendar
 ```
+
+This installs the `git-calendar` command globally.
 
 ## Usage
 
