@@ -217,6 +217,16 @@
     font-weight: 500;
   }
 
+  .calendar-cell.is-today {
+    background: #8B2020 !important;
+    outline: 2px solid #D44040;
+    outline-offset: -1px;
+  }
+
+  .calendar-cell.is-today .cell-day {
+    color: #fff;
+  }
+
   .commit-list {
     list-style: none;
     display: flex;
@@ -544,7 +554,7 @@ function getMonthsInRange(commits) {
     months.push({ year: d.getFullYear(), month: d.getMonth() });
     d.setMonth(d.getMonth() - 1);
   }
-  return months; // newest first
+  return months.reverse(); // oldest first, newest last
 }
 
 // ── Render ──────────────────────────────────────────────────────────────────
@@ -623,8 +633,9 @@ function render() {
       const count = commits.length;
       const level = getLevel(count, maxDaily);
       const levelClass = count === 0 ? 'no-commits' : `level-${level} has-commits`;
+      const isToday = dateStr === todayStr;
 
-      html += `<div class="calendar-cell ${levelClass}">`;
+      html += `<div class="calendar-cell ${levelClass}${isToday ? ' is-today' : ''}" ${isToday ? 'id="today-cell"' : ''}>`;
       html += `<div class="cell-day">${day}</div>`;
 
       if (count > 0) {
@@ -679,6 +690,14 @@ function render() {
   }
 
   document.getElementById('calendarRoot').innerHTML = html;
+
+  // Scroll to today
+  requestAnimationFrame(() => {
+    const todayEl = document.getElementById('today-cell');
+    if (todayEl) {
+      todayEl.scrollIntoView({ behavior: 'instant', block: 'center' });
+    }
+  });
 }
 
 function truncate(str, len) {

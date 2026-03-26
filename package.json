@@ -1,0 +1,25 @@
+{
+  "name": "git-calendar",
+  "version": "1.0.0",
+  "description": "Visualize git history as a beautiful calendar heatmap in your browser",
+  "bin": {
+    "git-calendar": "./bin/git-calendar.js"
+  },
+  "files": [
+    "bin/",
+    "lib/"
+  ],
+  "keywords": [
+    "git",
+    "calendar",
+    "heatmap",
+    "visualization",
+    "cli",
+    "history"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saugatkhadka/git-calendar.git"
+  }
+}
