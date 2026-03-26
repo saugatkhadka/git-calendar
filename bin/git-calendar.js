@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { execSync, spawn } = require('child_process');
+const { execSync, execFileSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -70,13 +70,14 @@ function generate(sincePeriod) {
   const SEP = '\t';
   const gitFormat = ['%h', '%an', '%ae', '%aI', '%s'].join(SEP);
 
-  const sinceArg = sincePeriod ? ` --since=${JSON.stringify(sincePeriod)}` : '';
+  const gitArgs = ['log', '--all', `--format=${gitFormat}`];
+  if (sincePeriod) gitArgs.push(`--since=${sincePeriod}`);
+
   let logOutput;
   try {
-    logOutput = execSync(
-      `git log --all --format="${gitFormat}"${sinceArg}`,
-      { cwd: repoRoot, encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }
-    );
+    logOutput = execFileSync('git', gitArgs, {
+      cwd: repoRoot, encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024,
+    });
   } catch {
     logOutput = '';
   }
