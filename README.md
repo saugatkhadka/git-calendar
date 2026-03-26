@@ -2,7 +2,7 @@
 
 Visualize any git repository's history as a beautiful calendar heatmap — right in your browser.
 
-![git-calendar](https://github.com/user-attachments/assets/placeholder.png)
+![git-calendar preview](preview.png)
 
 ## Features
 
