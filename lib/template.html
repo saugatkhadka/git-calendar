@@ -12,6 +12,7 @@
   :root {
     --bg: #181010;
     --bg-subtle: #211814;
+    --cell-empty: rgba(255, 255, 255, 0.04);
     --cell-border: #2D1F19;
     --copper-1: #7B4F3A;
     --copper-2: #965D42;
@@ -525,7 +526,7 @@
 </div>
 
 <script>
-// ── Data (injected by generate.sh) ──────────────────────────────────────────
+// ── Data (injected by the CLI) ──────────────────────────────────────────────
 const GIT_COMMITS = __GIT_DATA__;
 const GIT_AUTHORS = __AUTHORS_DATA__;
 const TOTAL_COMMITS = __COMMIT_COUNT__;
@@ -612,8 +613,7 @@ function render() {
     document.getElementById('calendarRoot').innerHTML = `
       <div class="no-data">
         <h2>No commit data found</h2>
-        <p>Run the generator script inside a git repository:<br>
-        <code>./generate.sh</code></p>
+        <p>Run <code>git-calendar</code> inside a git repository to generate this view.</p>
       </div>`;
     return;
   }
