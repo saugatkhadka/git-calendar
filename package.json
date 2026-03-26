@@ -1,6 +1,6 @@
 {
   "name": "@saugatkhadka/git-calendar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Visualize git history as a beautiful calendar heatmap in your browser",
   "bin": {
     "git-calendar": "bin/cli.js"
