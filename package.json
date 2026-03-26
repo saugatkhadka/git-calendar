@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Visualize git history as a beautiful calendar heatmap in your browser",
   "bin": {
-    "git-calendar": "./bin/git-calendar.js"
+    "git-calendar": "./bin/cli.js"
   },
   "files": [
     "bin/",
