@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Git Calendar — __REPO_NAME__</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #181010;
+    --bg-subtle: #211814;
+    --cell-border: #2D1F19;
+    --copper-1: #7B4F3A;
+    --copper-2: #965D42;
+    --copper-3: #AD6B4C;
+    --copper-4: #BF7555;
+    --copper-5: #CD8562;
+    --accent: #D4845A;
+    --accent-bright: #E8956A;
+    --text: #F2E0D5;
+    --text-muted: #9B8A80;
+    --text-dim: #4A3D37;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  html {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-height: 100vh;
+    padding: 40px 48px 80px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 48px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .header-top .logo {
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--bg);
+  }
+
+  .header-top .label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .header h1 {
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 12px 0 8px;
+    color: var(--text);
+  }
+
+  .header h1 .highlight {
+    color: var(--accent-bright);
+  }
+
+  .header .subtitle {
+    font-size: 15px;
+    color: var(--text-muted);
+  }
+
+  /* Authors bar */
+  .authors-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 28px 0 44px;
+    padding: 20px 24px;
+    background: var(--bg-subtle);
+    border-radius: 12px;
+    border: 1px solid var(--cell-border);
+  }
+
+  .author-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .author-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .author-name {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .author-count {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* Month section */
+  .month-section {
+    margin-bottom: 56px;
+  }
+
+  .month-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  /* Calendar grid */
+  .day-headers {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    margin-bottom: 3px;
+  }
+
+  .day-header {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 6px 10px;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+
+  .calendar-cell {
+    min-height: 100px;
+    border-radius: 5px;
+    padding: 8px 10px;
+    position: relative;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: default;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .calendar-cell.has-commits:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 2;
+    outline: 1.5px solid var(--accent-bright);
+    overflow: visible;
+  }
+
+  .calendar-cell.empty {
+    background: transparent;
+    min-height: 0;
+  }
+
+  .calendar-cell.no-commits {
+    background: transparent;
+  }
+
+  .calendar-cell.level-1 { background: var(--copper-1); }
+  .calendar-cell.level-2 { background: var(--copper-2); }
+  .calendar-cell.level-3 { background: var(--copper-3); }
+  .calendar-cell.level-4 { background: var(--copper-4); }
+  .calendar-cell.level-5 { background: var(--copper-5); }
+
+  .cell-day {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .no-commits .cell-day {
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .commit-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .commit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .commit-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+
+  .commit-msg {
+    color: var(--text);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  .commit-author-inline {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .commit-more {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+    font-weight: 500;
+  }
+
+  /* Tooltip / detail panel */
+  .cell-tooltip {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 100;
+    background: #2A1D17;
+    border: 1px solid var(--copper-3);
+    border-radius: 10px;
+    padding: 14px;
+    min-width: 300px;
+    max-width: 400px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    margin-top: 6px;
+  }
+
+  .calendar-cell:hover .cell-tooltip {
+    display: block;
+  }
+
+  /* Right-side cells: tooltip goes left */
+  .calendar-cell:nth-child(7n+5) .cell-tooltip,
+  .calendar-cell:nth-child(7n+6) .cell-tooltip,
+  .calendar-cell:nth-child(7n) .cell-tooltip {
+    left: auto;
+    right: 0;
+  }
+
+  .tooltip-header {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-bright);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--cell-border);
+  }
+
+  .tooltip-commits {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .tooltip-commit {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .tooltip-commit-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  .tooltip-commit-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tooltip-commit-msg {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .tooltip-commit-meta {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .tooltip-commit-hash {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: var(--text-dim);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 40px;
+    justify-content: flex-end;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-block {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--copper-2); border-radius: 3px; }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 32px;
+    margin: 20px 0 0;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .stat-value {
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--accent-bright);
+    display: block;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* No data state */
+  .no-data {
+    text-align: center;
+    padding: 120px 40px;
+  }
+
+  .no-data h2 {
+    color: var(--accent);
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+
+  .no-data p {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .no-data code {
+    background: var(--bg-subtle);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--accent-bright);
+  }
+
+  @media (max-width: 1100px) {
+    body { padding: 24px 20px 60px; }
+    .calendar-cell { min-height: 90px; padding: 8px; }
+    .cell-day { font-size: 15px; }
+    .commit-item { font-size: 10px; }
+    .header h1 { font-size: 28px; }
+  }
+
+  @media (max-width: 768px) {
+    .calendar-cell { min-height: 60px; padding: 6px; }
+    .commit-list { display: none; }
+    .cell-day { font-size: 13px; }
+    .day-header { font-size: 9px; padding: 4px; }
+    .authors-bar { gap: 10px; padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">G</div>
+    <span class="label">Git Calendar</span>
+  </div>
+  <h1>
+    <span class="highlight" id="repoName">__REPO_NAME__</span> history
+  </h1>
+  <p class="subtitle" id="subtitle"></p>
+  <div class="stats-bar" id="statsBar"></div>
+</div>
+
+<div class="authors-bar" id="authorsBar"></div>
+
+<div id="calendarRoot"></div>
+
+<div class="legend">
+  <span>Less</span>
+  <div class="legend-block" style="background:var(--cell-empty)"></div>
+  <div class="legend-block" style="background:var(--copper-1)"></div>
+  <div class="legend-block" style="background:var(--copper-2)"></div>
+  <div class="legend-block" style="background:var(--copper-3)"></div>
+  <div class="legend-block" style="background:var(--copper-4)"></div>
+  <div class="legend-block" style="background:var(--copper-5)"></div>
+  <span>More</span>
+</div>
+
+<script>
+// ── Data (injected by generate.sh) ──────────────────────────────────────────
+const GIT_COMMITS = __GIT_DATA__;
+const GIT_AUTHORS = __AUTHORS_DATA__;
+const TOTAL_COMMITS = __COMMIT_COUNT__;
+
+// ── Color palette for authors ───────────────────────────────────────────────
+const AUTHOR_COLORS = [
+  '#E8956A', '#D4845A', '#C47A55', '#E07850', '#D4603A',
+  '#C9876F', '#B8755B', '#E6A67A', '#D98E6E', '#C17A5E',
+  '#E8B890', '#D4A278', '#BF8D63', '#A87552', '#CF6B45',
+  '#E89070', '#D07858', '#B86040', '#CC9468', '#E0A880',
+];
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function getAuthorColor(author) {
+  return AUTHOR_COLORS[hashString(author) % AUTHOR_COLORS.length];
+}
+
+function getInitials(name) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// ── Group commits by date ───────────────────────────────────────────────────
+function groupByDate(commits) {
+  const map = {};
+  for (const c of commits) {
+    if (!map[c.date]) map[c.date] = [];
+    map[c.date].push(c);
+  }
+  // Sort each day's commits by time
+  for (const d in map) {
+    map[d].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+  }
+  return map;
+}
+
+// ── Determine commit level (1-5) ───────────────────────────────────────────
+function getLevel(count, maxCount) {
+  if (count === 0) return 0;
+  const ratio = count / maxCount;
+  if (ratio <= 0.15) return 1;
+  if (ratio <= 0.35) return 2;
+  if (ratio <= 0.55) return 3;
+  if (ratio <= 0.75) return 4;
+  return 5;
+}
+
+// ── Escape HTML ─────────────────────────────────────────────────────────────
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ── Get months in range ─────────────────────────────────────────────────────
+function getMonthsInRange(commits) {
+  if (commits.length === 0) return [];
+  const dates = commits.map(c => c.date).sort();
+  const first = new Date(dates[0] + 'T00:00:00');
+  // Always go up to the current month, not the last commit
+  const now = new Date();
+
+  const months = [];
+  const d = new Date(now.getFullYear(), now.getMonth(), 1);
+  while (d >= new Date(first.getFullYear(), first.getMonth(), 1)) {
+    months.push({ year: d.getFullYear(), month: d.getMonth() });
+    d.setMonth(d.getMonth() - 1);
+  }
+  return months; // newest first
+}
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function render() {
+  if (!GIT_COMMITS || GIT_COMMITS.length === 0) {
+    document.getElementById('calendarRoot').innerHTML = `
+      <div class="no-data">
+        <h2>No commit data found</h2>
+        <p>Run the generator script inside a git repository:<br>
+        <code>./generate.sh</code></p>
+      </div>`;
+    return;
+  }
+
+  const byDate = groupByDate(GIT_COMMITS);
+  const months = getMonthsInRange(GIT_COMMITS);
+  const maxDaily = Math.max(...Object.values(byDate).map(arr => arr.length));
+  const uniqueAuthors = new Set(GIT_COMMITS.map(c => c.author)).size;
+
+  // Subtitle
+  const firstDate = GIT_COMMITS.map(c => c.date).sort()[0];
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  document.getElementById('subtitle').textContent =
+    `${formatDateShort(firstDate)} — ${formatDateShort(todayStr)}`;
+
+  // Stats
+  const totalDaysActive = Object.keys(byDate).length;
+  document.getElementById('statsBar').innerHTML = `
+    <div><span class="stat-value">${TOTAL_COMMITS.toLocaleString()}</span><span class="stat-label">Commits</span></div>
+    <div><span class="stat-value">${uniqueAuthors}</span><span class="stat-label">Contributors</span></div>
+    <div><span class="stat-value">${totalDaysActive}</span><span class="stat-label">Active Days</span></div>
+    <div><span class="stat-value">${months.length}</span><span class="stat-label">Months</span></div>
+  `;
+
+  // Authors bar
+  const topAuthors = GIT_AUTHORS.slice(0, 12);
+  document.getElementById('authorsBar').innerHTML = topAuthors.map(a => `
+    <div class="author-chip">
+      <div class="author-avatar" style="background:${getAuthorColor(a.name)}">${getInitials(a.name)}</div>
+      <div>
+        <div class="author-name">${esc(a.name)}</div>
+        <div class="author-count">${a.count} commits</div>
+      </div>
+    </div>
+  `).join('');
+
+  // Calendar months
+  const MONTH_NAMES = ['January','February','March','April','May','June',
+    'July','August','September','October','November','December'];
+  const DAY_NAMES = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+
+  let html = '';
+
+  for (const { year, month } of months) {
+    const firstOfMonth = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Monday = 0, Sunday = 6 (ISO)
+    let startDow = firstOfMonth.getDay() - 1;
+    if (startDow < 0) startDow = 6;
+
+    html += `<div class="month-section">`;
+    html += `<div class="month-title">${MONTH_NAMES[month]} ${year}</div>`;
+    html += `<div class="day-headers">${DAY_NAMES.map(d => `<div class="day-header">${d}</div>`).join('')}</div>`;
+    html += `<div class="calendar-grid">`;
+
+    // Empty cells before first day
+    for (let i = 0; i < startDow; i++) {
+      html += `<div class="calendar-cell empty"></div>`;
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const commits = byDate[dateStr] || [];
+      const count = commits.length;
+      const level = getLevel(count, maxDaily);
+      const levelClass = count === 0 ? 'no-commits' : `level-${level} has-commits`;
+
+      html += `<div class="calendar-cell ${levelClass}">`;
+      html += `<div class="cell-day">${day}</div>`;
+
+      if (count > 0) {
+        html += `<ul class="commit-list">`;
+        const show = commits.slice(0, 4);
+        for (const c of show) {
+          const color = getAuthorColor(c.author);
+          html += `<li class="commit-item">
+            <span class="commit-dot" style="background:${color}"></span>
+            <span class="commit-msg">${esc(truncate(c.subject, 30))}</span>
+          </li>`;
+        }
+        if (count > 4) {
+          html += `<li class="commit-more">+${count - 4} more</li>`;
+        }
+        html += `</ul>`;
+
+        // Tooltip
+        html += `<div class="cell-tooltip">`;
+        html += `<div class="tooltip-header">${formatDateLong(dateStr)} &mdash; ${count} commit${count !== 1 ? 's' : ''}</div>`;
+        html += `<ul class="tooltip-commits">`;
+        for (const c of commits) {
+          const color = getAuthorColor(c.author);
+          html += `<li class="tooltip-commit">
+            <span class="tooltip-commit-dot" style="background:${color}"></span>
+            <div class="tooltip-commit-info">
+              <div class="tooltip-commit-msg">${esc(c.subject)}</div>
+              <div class="tooltip-commit-meta">
+                ${esc(c.author)} &middot;
+                <span class="tooltip-commit-hash">${c.hash}</span> &middot;
+                ${c.time || ''}
+              </div>
+            </div>
+          </li>`;
+        }
+        html += `</ul></div>`;
+      }
+
+      html += `</div>`;
+    }
+
+    // Trailing empty cells
+    const totalCells = startDow + daysInMonth;
+    const remainder = totalCells % 7;
+    if (remainder > 0) {
+      for (let i = 0; i < 7 - remainder; i++) {
+        html += `<div class="calendar-cell empty"></div>`;
+      }
+    }
+
+    html += `</div></div>`;
+  }
+
+  document.getElementById('calendarRoot').innerHTML = html;
+}
+
+function truncate(str, len) {
+  if (str.length <= len) return str;
+  return str.substring(0, len) + '...';
+}
+
+function formatDateShort(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDateLong(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+// ── Go ──────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
